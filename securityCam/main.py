@@ -53,6 +53,6 @@ def getFrameDiff(camIndex):
         #Name of the camera
         cv2.imshow("My Camera", frame1)
 
-if __name__ == 'main':
+if __name__ == '__main__':
 # openCamera(0)
     getFrameDiff(0)
