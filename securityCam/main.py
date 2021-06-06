@@ -1,22 +1,55 @@
 import cv2
+import matplotlib.pyplot as plt
 import winsound
 
-# print(camera.isOpened())/
+#Using Opencv predefined model based on Tensorflow: https://github.com/opencv/opencv/wiki/TensorFlow-Object-Detection-API
+cofig_file = "securityCam/resources/configFiles/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt"
+frozen_model = "securityCam/resources/configFiles/ssd_mobilenet_v3_large_coco_2020_01_14/frozen_inference_graph.pb"
+img_labels = "securityCam/resources/otherFiles/Labels.txt"
+img_file = "securityCam/resources/otherFiles/image.jpg"
+plot_imgFile = "securityCam/resources/otherFiles/"
+font_scale = 3
+font = cv2.FONT_HERSHEY_COMPLEX
+model = cv2.dnn_DetectionModel(frozen_model,cofig_file)
+# Below is the lables of names to confirm from the image
+class_imgLabels = []
+with open(img_labels,'rt') as imgLabels:
+    class_imgLabels = imgLabels.read().rstrip('\n').split('\n')
 
-def openCamera(camIndex):
-    camera = cv2.VideoCapture(camIndex)
-    while camera.isOpened():
-        #ret refers to retrieve and frame refers to frame of the camera
-        ret, frame = camera.read()
-        #decalre a key to close the camera using ord
-        if cv2.waitKey(10) == ord('q'):
-            print("Closing the webcam")
-            break
-        #Name of the camera
-        cv2.imshow("My Camera", frame)
+# def openCamera(camIndex):
+#     camera = cv2.VideoCapture(camIndex)
+#     while camera.isOpened():
+#         #ret refers to retrieve and frame refers to frame of the camera
+#         ret, frame = camera.read()
+#         #decalre a key to close the camera using ord
+#         if cv2.waitKey(10) == ord('q'):
+#             print("Closing the webcam")
+#             break
+#         #Name of the camera
+#         cv2.imshow("My Camera", frame)
+def imgClassify(fileName):
+    
+    model.setInputSize(320,320)
+    model.setInputScale(1.0/127.5)
+    model.setInputMean(127.5)
+    model.setInputSwapRB(True) #RGB will be converted to grey automatically
+    img = cv2.imread(fileName)
+    # print(fileName)
+    plt.imshow(img)
+    classIndex, confidece, bbox = model.detect(img,confThreshold=0.55)
+    print(classIndex)
 
-def getFrameDiff(camIndex):
+    for classInd, conf, boxes in zip(classIndex.flatten(),confidece.flatten(),bbox):
+        cv2.rectangle(img,boxes,(255,0,0),2)
+        cv2.putText(img,class_imgLabels[classInd-1],(boxes[0]+10,boxes[1]+40),font,fontScale=font_scale,color=(0,255,0),thickness=3)
+    # plt.imshow(img)
+    plt.savefig(plot_imgFile+'newImg.png')
+
+def webCamCapture(camIndex):
     camera = cv2.VideoCapture(camIndex)
+    camera.set(3,640)
+    camera.set(4,480)
+    camera.set(10,100)
     while camera.isOpened():
         #ret refers to retrieve and frame refers to frame of the camera
         ret, frame1 = camera.read()
@@ -45,14 +78,49 @@ def getFrameDiff(camIndex):
             # To play default sound
             # winsound.Beep(500, 200)
             # To play custom sound asyncronously
-            winsound.PlaySound('securityCam/alert.wav',winsound.SND_ASYNC)
+            winsound.PlaySound('securityCam/resources/otherFiles/alert.wav',winsound.SND_ASYNC)
         #decalre a key to close the camera using ord
         if cv2.waitKey(10) == ord('q'):
             print("Closing the webcam")
             break
+        # print(threshold)
+        # print(type(threshold))
+        # classIndex, confidece, bbox = model.detect(frame1,confThreshold=0.5)
+        # if len(classIndex)!=0:
+        #     for classInd, conf, boxes in zip(classIndex.flatten(),confidece.flatten(),bbox):
+        #         if classInd<=80:
+        #             cv2.rectangle(frame1,boxes,(255,0,0),2)
+        #             cv2.putText(frame1,class_imgLabels[classInd-1].upper(),(boxes[0]+10,boxes[1]+40),font,fontScale=font_scale,color=(0,255,0),thickness=3)
         #Name of the camera
         cv2.imshow("My Camera", frame1)
 
+
+def objReadFrmCam(camIndex):
+    model.setInputSize(320,320)
+    model.setInputScale(1.0/127.5)
+    model.setInputMean(127.5)
+    model.setInputSwapRB(True)
+    camera = cv2.VideoCapture(camIndex)
+    ret, frame = camera.read()
+    while camera.isOpened():
+        ret, frame = camera.read()
+        if cv2.waitKey(10) == ord('q'):
+            print("Closing the webcam")
+            break
+        else:
+            classIndex, confidece, bbox = model.detect(frame,confThreshold=0.5)
+            if len(classIndex)!=0:
+                for classInd, conf, boxes in zip(classIndex.flatten(),confidece.flatten(),bbox):
+                    if classInd<=80:
+                        cv2.rectangle(frame,boxes,(255,0,0),2)
+                        cv2.putText(frame,class_imgLabels[classInd-1].upper(),(boxes[0]+10,boxes[1]+40),font,fontScale=font_scale,color=(0,255,0),thickness=3)
+            #Name of the camera
+            cv2.imshow("My Camera", frame)
+
+
 if __name__ == '__main__':
 # openCamera(0)
-    getFrameDiff(0)
+    # webCamCapture(0)
+    # print(class_imgLabels)
+    # imgClassify(img_file)
+    objReadFrmCam(0)
